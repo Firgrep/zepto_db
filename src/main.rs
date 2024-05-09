@@ -33,7 +33,7 @@ fn main() {
         }
         Commands::Update(args) => {
             println!(
-                "==>'Update' from table: {:?} with payload {:?} and filter {:?}",
+                "==>'Update' table: {:?} with payload {:?} and filter {:?}",
                 args.table_name, args.payload, args.filter
             )
         }
