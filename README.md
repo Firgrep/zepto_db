@@ -1,6 +1,17 @@
-# zepto_db
+# `zepto_db` A Tiny DB built with Rust
+
+⚠️ Work in progress 🏗️
 
 Rust example project for educational pursuits.
+
+## Developing with `cargo run`
+
+Make sure to add `--` after `cargo run` followed by any commands and flags.
+
+```rs
+// example
+cargo run -- --name "John McClane"
+```
 
 ## Spec (MVP)
 
@@ -8,7 +19,7 @@ Rust example project for educational pursuits.
   - create table
   - specify columns
   - int32 and string support
-- basis create, read (select) and delete of rows
+- basic create, read (select) and delete of rows
 - parser for instructions
 - CLI
 - select (with joins)
