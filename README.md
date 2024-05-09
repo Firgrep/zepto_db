@@ -13,6 +13,10 @@ Make sure to add `--` after `cargo run` followed by any commands and flags.
 cargo run -- --name "John McClane"
 ```
 
+## Docs
+
+Run `cargo doc --open` to generate docs and open them in the browser.
+
 ## Spec (MVP)
 
 - define schemas
