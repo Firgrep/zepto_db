@@ -28,3 +28,10 @@ Run `cargo doc --open` to generate docs and open them in the browser.
 - CLI
 - select (with joins)
 - joins (left join)
+
+## Current functionality
+Create a new table:
+e.g.: create --table-name "buildings" --schema "address, number of floors"
+
+Display a table:
+
