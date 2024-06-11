@@ -20,6 +20,11 @@ const DATA_DIR : &str = "data";
 /// - [`Clap` derive tutorial](https://docs.rs/clap/latest/clap/_derive/_tutorial/chapter_0/index.html)
 /// - [`Clap` examples from the cookbook](https://docs.rs/clap/latest/clap/_derive/_cookbook/index.html)
 fn main() {
+    let my_table = table::load("people");
+    for row in my_table.iter_rows() {
+      println!("{:?}", row);
+    }
+
     let datadir= PathBuf::from(DATA_DIR);
     match fs::canonicalize(&datadir) {
       Ok(path) => println!("Data directory: {}", path.display()),

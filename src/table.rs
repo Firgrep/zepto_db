@@ -17,6 +17,34 @@ pub struct Table {
   contents: Vec<String>
 }
 
+/*
+ Make it possible to iterate over rows.
+ See: https://dev.to/wrongbyte/implementing-iterator-and-intoiterator-in-rust-3nio
+*/
+pub struct RowIterator<'a> {
+    table: &'a Table,
+    index: usize,
+}
+
+impl<'a> Iterator for RowIterator<'a> {
+    type Item = Vec<String>;
+
+    fn next(&mut self) -> Option<Vec<String>> {
+        if self.index < self.table.n_rows {
+            let mut row : Vec<String> = Vec::new();
+            for j in 0..self.table.n_cols {
+              row.push(self.table.contents[self.index * self.table.n_cols + j].clone());
+            }
+            let result = Some(row);
+            self.index += 1;
+            result
+        } else {
+            None
+        }
+    }
+}
+
+
 pub fn create(name: &str, schema: &str) -> std::io::Result<()> {
   println!("Creating table ``{}'' with schema ``{}''", name, schema);
   
@@ -104,7 +132,17 @@ fn get_schema(name: &str) {
 }
 
 impl Table {
+    pub fn iter_rows(&self) -> RowIterator {
+        RowIterator {
+            table: self,
+            index: 0,
+        }
+    }
+
   pub fn display(&self) {
+    // Print name
+    println!("Table name: {}", self.name);
+
     // First calculate the column widths
     let mut x: Vec<usize> = Vec::new();
     for i in 0..self.n_cols {
@@ -157,4 +195,3 @@ impl Table {
     }
   }
 }
-
