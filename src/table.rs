@@ -1,3 +1,6 @@
+// needed for benchmarking tests I think
+extern crate test;
+
 use std::path::Path;
 use std::fs::File;
 use std::io::Error;
@@ -8,6 +11,9 @@ use std::io::BufReader;
 
 use std::cmp;
 
+use std::collections::HashMap; // for left_join_fast
+
+
 #[derive(Debug)]
 pub struct Table {
   name: String,
@@ -15,6 +21,17 @@ pub struct Table {
   n_cols: usize,
   schema: Vec<String>,
   contents: Vec<String>
+}
+
+pub fn new(name: &str, schema_string: &str) -> Table  {
+  let schema : Vec<String> = parse_schema_string(schema_string).into_iter().map(|x| x.to_string()).collect();
+  return Table {
+    name: name.to_string(),
+    n_rows: 0,
+    n_cols: schema.len(),
+    schema: schema,
+    contents: Vec::new()
+  }
 }
 
 /*
@@ -132,6 +149,133 @@ fn get_schema(name: &str) {
 }
 
 impl Table {
+    pub fn left_join_fast(&self, other: &Table, column: &str) -> Table {
+    // More efficient O(n log n) implementation of left join
+    /*
+      Do the same as the naive implementation, but replace the lookup
+      operation to check if a key is in other table by a more efficient
+      operation.
+    */
+      // figure out the index of the column in each table
+      let col_indx_a = self.schema.iter().position(|r| r == column).unwrap();
+      let col_indx_b = other.schema.iter().position(|r| r == column).unwrap();
+
+      // Define the schema of the new table
+      let mut schema = self.schema.clone();
+      for j in 0..other.n_cols {
+        if j == col_indx_b {
+          continue
+        } else {
+          schema.push(other.schema[j].clone());
+        }
+      }
+
+      // the new table 
+      let mut joined = Table {
+        name: format!("{}_{}",self.name, other.name),
+        n_rows: 0,
+        n_cols: schema.len(),
+        schema: schema,
+        contents: Vec::new()
+      };
+
+      let mut index_map : HashMap<String, Vec<usize>> = HashMap::new();
+
+      // Construct a hashmap mapping each value of other[column] to
+      // the vec of indices of rows with this value.
+      for (i, row) in other.iter_rows().enumerate() {
+        let value = &row[col_indx_b];
+          index_map.entry(value.clone()).and_modify(|x| x.push(i)).or_insert(vec![i]);
+      }
+
+      for row_a in self.iter_rows() {
+        let col_val = &row_a[col_indx_a];
+        match index_map.get(col_val) {
+          Some(indices) => {
+            for i in indices.into_iter() {
+              // insert a new row into the joined table
+              let mut new_row = row_a.clone(); // this isn't correct I think
+              // loop over the row in other
+              for j in 0..other.n_cols {
+                if j != col_indx_b {
+                    new_row.push(other.contents[other.n_cols * i + j].clone());
+                }
+              }
+
+              joined.insert(new_row.clone());
+            }
+          }
+        None => ()
+        }
+     }
+      
+      return joined
+    }
+
+    pub fn left_join(&self, other: &Table, column: &str) -> Table {
+      // Naive implementation of join
+      /*
+        for each row_a in self:
+          for each row_b in other:
+            if row_a[column] == row_b[column]:
+              new_row = row_a | row_b
+              add new_row to new_table 
+      */
+
+      // figure out the index of the column in each table
+      let col_indx_a = self.schema.iter().position(|r| r == column).unwrap();
+      let col_indx_b = other.schema.iter().position(|r| r == column).unwrap();
+
+      let mut schema = self.schema.clone();
+      for j in 0..other.n_cols {
+        if j == col_indx_b {
+          continue
+        } else {
+          schema.push(other.schema[j].clone());
+        }
+      }
+      
+
+      let mut joined = Table {
+        name: format!("{}_{}",self.name, other.name),
+        n_rows: 0,
+        n_cols: schema.len(),
+        schema: schema,
+        contents: Vec::new()
+      };
+
+
+      for row_a in self.iter_rows() {
+        for row_b in other.iter_rows() {
+          if row_a[col_indx_a] == row_b[col_indx_b] {
+            // include this row
+            let mut new_row = row_a.clone(); // this isn't correct I think
+            for j in 0..row_b.len() {
+              if j == col_indx_b {
+                continue
+              } else {
+                new_row.push(row_b[j].clone());
+              }
+            }
+
+            joined.insert(new_row.clone());
+          }
+        }
+      }
+
+      return joined
+    }
+
+    pub fn insert(&mut self, mut row: Vec<String>) {
+      // Insert a new row
+      if row.len() != self.n_cols {
+        panic!("row does not match schema");
+      }
+
+      self.contents.append(&mut row);
+      self.n_rows += 1;
+    }
+
     pub fn iter_rows(&self) -> RowIterator {
         RowIterator {
             table: self,
@@ -193,5 +337,41 @@ impl Table {
         }
         println!()
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use test::Bencher;
+
+  #[bench]
+  fn bench_join(b: &mut Bencher) {
+    let mut my_table = new("furniture", "location,value");
+    let n = 300;
+    for i in 0..n{
+      my_table.insert(vec![format!("{i}"), format!("{i}")]);
+    }
+    my_table.display();
+    let mut other_table = new("houses", "number,value");
+    for i in 0..n {
+      other_table.insert(vec![format!("{i}"), format!("{}", n - i)]);
+    }
+    b.iter(|| my_table.left_join(&other_table, "value"))
+  }
+
+  #[bench]
+  fn bench_join_fast(b: &mut Bencher) {
+    let mut my_table = new("furniture", "location,value");
+    let n = 300;
+    for i in 0..n{
+      my_table.insert(vec![format!("{i}"), format!("{i}")]);
+    }
+    my_table.display();
+    let mut other_table = new("houses", "number,value");
+    for i in 0..n {
+      other_table.insert(vec![format!("{i}"), format!("{}", n - i)]);
+    }
+    b.iter(|| my_table.left_join_fast(&other_table, "value"))
   }
 }

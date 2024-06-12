@@ -8,6 +8,12 @@ Rust example project for educational pursuits.
 
 Make sure to add `--` after `cargo run` followed by any commands and flags.
 
+Note: Project requires the nightly toolchain because of benchmarking.
+To install nightly use rustup: ``rustup install nightly''
+Then set nightly as the default toolchain for the project directory: within
+the project directory type: ``rustup default nightly''
+
+
 ```rs
 // example
 cargo run -- --name "John McClane"
@@ -35,3 +41,5 @@ e.g.: create --table-name "buildings" --schema "address, number of floors"
 
 Display a table:
 
+## Testing and benchmarking.
+To run benchmarks: ``cargo test'' or ``cargo bench''.
